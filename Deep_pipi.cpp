@@ -444,7 +444,7 @@ int Deep_pipi(){
         }
         
         nTrack = 0;
-        fprintf(outfile," %5d %5.1f %5.1f %5.1f %5.1f  %10.4f %10.4f %10.4f %10.4f %10.4f \n", npartf,
+        fprintf(outfile," %5d %5.1f %5.1f %5.1f %5.1f  %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f \n", npartf,
                 ATarget, ZTarget, kPolar, TPolar, xBj, nu/kBeam, sqrt(W2), Q2, RF,psf);
         nTrack++;
         fprintf(outfile," %5d %5.1f %5d %5d %5d %5d %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f %10.4f \n",
