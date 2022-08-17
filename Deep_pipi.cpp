@@ -116,7 +116,7 @@ int Deep_pipi(){
     k4BeamLab.SetVectM(kBeam3,mLepton);
     
     Int_t nEvt=0;
-    for(Int_t i=0;i<10000000;i++){
+    for(Int_t i=0;i<10000;i++){
         Q2=(Q2max-Q2min)*(ran3.Uniform())+Q2min;
         xBj=(xmax-xmin)*(ran3.Uniform())+xmin;
         nu=Q2/(2*xBj*Mtarget);
