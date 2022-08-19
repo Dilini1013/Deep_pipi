@@ -11,22 +11,37 @@
 //  I. Akushevich, Eur. Phys. J. C 8, 457–463 (1999)
 
 #include "Deep_pipi.hpp"
-#include <stdio.h>
-#include <TCanvas.h>
-#include <TH2D.h>
-#include <TRandom3.h>
-#include <TVector3.h>
-#include <TLorentzVector.h>
-#include <TH1D.h>
-#include <TH2D.h>
-#include <TLatex.h>
-#include <TLegend.h>
-#include <TF1.h>
 
-//void montecarlo_new(){
-int Deep_pipi(){
+int main(int argc, char *argv[]) {
+  
+    // choose a random number seed from system clock:
+    //auto time = std::chrono::system_clock::now();
+    //std::chrono::microseconds ms =
+    //    std::chrono::duration_cast<std::chrono::microseconds>(time.time_since_epoch()); 
+    //long long unsigned seed_value = ms.count(); 
+
+    char* short_options = (char*)"a:b:c:";
+    const struct option long_options[] = {
+                {"trig",required_argument,NULL,'a'},
+                {"docker",optional_argument,NULL,'b'},
+                {"seed",optional_argument,NULL,'c'}
+    };
+
+    int nevents,seed;
+    for (int i=1; i<argc; i+=2) {
+        TString key = argv[i];
+        TString val = argv[i+1];
+        if (key.EqualTo("--trig")) {
+            nevents = val.Atoi();
+        }
+        else if (key.EqualTo("--seed")) {
+            seed = val.Atoi();
+            gRandom->SetSeed(seed);
+        }
+    }
+
     FILE *outfile;
-    outfile = fopen("deepR.dat", "w");  // using relative path name of file
+    outfile = fopen("deep-pipi-gen.dat", "w");  // using relative path name of file
     if (outfile == NULL) {
         printf("Unable to open file.");
     }
@@ -70,7 +85,7 @@ int Deep_pipi(){
     // TH1D *hDPy = new TH1D("hDPy", "Final State P_{y} - Initial State P_{y}; #Delta P_{y}   ;  Events  ",
     // 95, -9.5,9.5);
     TH1D *h_RF = new TH1D("h_RF", "RF  ;  Events  ",95, 0.0,4.0);
-    TH1D *h_sigmaobs = new TH1D("h_RF", "RF  ;  Events  ",95, 0.0,4.0);
+    TH1D *h_sigmaobs = new TH1D("h_sigmaobs", "RF  ;  Events  ",95, 0.0,4.0);
     const int n_rad_bin=200;
     TH1D *h_rad = new TH1D("h_rad",
                            "(pre_rad+post_rad)/v_{max}; (GeV)^{2}  ;  Events  ",
@@ -116,7 +131,7 @@ int Deep_pipi(){
     k4BeamLab.SetVectM(kBeam3,mLepton);
     
     Int_t nEvt=0;
-    for(Int_t i=0;i<10000;i++){
+    while (nEvt<nevents) {
         Q2=(Q2max-Q2min)*(ran3.Uniform())+Q2min;
         xBj=(xmax-xmin)*(ran3.Uniform())+xmin;
         nu=Q2/(2*xBj*Mtarget);
@@ -155,14 +170,14 @@ int Deep_pipi(){
         EpprimeCM=(W2+M2-M122)/(2.*sqrt(W2));
         if (E12CM*E12CM < M122) {
             printf("Event %d, E12CM, M122 = %7.3f, %7.3f \n",
-                   i, E12CM, M122);
+                   nEvt, E12CM, M122);
             continue;
         }
         P12CM=sqrt(E12CM*E12CM-M122);
         
         tmax = 2.*M2 - 2.*EpCM*EpprimeCM - 2.*PCM*P12CM; // Max NEGATIVE
         tmin = 2.*M2 - 2.*EpCM*EpprimeCM + 2.*PCM*P12CM; // Min NEGATIVE
-        tmaxGen = max(tmax,tMaxGen0);
+        tmaxGen = std::max(tmax,tMaxGen0);
         t    = (tmaxGen-tmin)*ran3.Uniform()*tFrac + tmin;
         ht->Fill(t);
         //  For any t, there is a range of radiation values v_cut allowed between 0 and v_{Max}
@@ -171,8 +186,7 @@ int Deep_pipi(){
         //  These variables must be recalculated after radiation generation
         csthe12=(t-2.*M2+2.*EpCM*EpprimeCM)/(2.*PCM*P12CM); //cos(theta_h) in Diffrad
         if (csthe12*csthe12> 1.0){
-           // printf("Event %d, Invalid On-shell kinematics, csthe12 = %7.4f \n",
-                   i, csthe12);
+          //  printf("Event %d, Invalid On-shell kinematics, csthe12 = %7.4f \n",i, csthe12);
             continue;
         }
         snthe12 = sqrt(1.-csthe12*csthe12);
@@ -193,7 +207,7 @@ int Deep_pipi(){
         vmaxH=((Q2-t+M122)/(2*xBj)+t) * (1-sqrt(1-W2*(tmax-t)*(t-tmin)/Q2/pow((Q2-t+M122)/(2*xBj)+t,2))); //Dr.Hyde's definition of vmax
         vmaxE= pow(sqrt(W2)-sqrt(M122),2)-Mtarget*Mtarget; //exclurad definition
         if((vmaxD-vmaxH)>1.e-6||(vmaxD-vmaxH)<-1.e-6) {
-            printf("Event %d, vmax D,H = %9.6f, %9.6f  GeV2 \n ", i, vmaxD, vmaxH);
+            printf("Event %d, vmax D,H = %9.6f, %9.6f  GeV2 \n ", nEvt, vmaxD, vmaxH);
             continue;
         }
             vmax= vmaxD;
@@ -272,7 +286,7 @@ int Deep_pipi(){
         Xprime= XX+Q2-VV2;                                              //Diffrad 9
         if (Sprime<= 0.0 || Xprime<= 0.0){
             printf("Event %d, Sprime, Xprime %7.4f, %7.4f Negative invalid \n",
-                   i, Sprime,Xprime);
+                   nEvt, Sprime,Xprime);
             printf("     SS, XX, VV1, VV2 = %7.3f, %7.3f, %7.3f, %7.3f \n",
                    SS, XX, VV1, VV2);
             printf("     CM E1, p1, E2, p2, Eh, ph = %7.3f, %7.3f, %7.3f, %7.3f %7.3f %7.3f \n",
@@ -298,7 +312,7 @@ int Deep_pipi(){
         Eh = (W2-mu*mu-pre_rad-post_rad+M122)/(2.*sqrt(W2));
         if (Eh<sqrt(M122)){
             printf("Event %d, Invalid radiative kinematics E12CM, M_pi,pi = %7.4f, %7.4f \n",
-                   i, Eh,sqrt(M122));
+                   nEvt, Eh,sqrt(M122));
             continue;
         }
         ph = sqrt(Eh*Eh-M122);
@@ -306,7 +320,7 @@ int Deep_pipi(){
         csthe12 = (Q2+t + 2.*Eq*Eh - M122)/(2.*sqrt(Eq*Eq+Q2)*ph);
         if (csthe12*csthe12>1.0){
             printf("Event %d, csthe12=%10.3f gamma* P CM frame\n",
-                   i,csthe12);
+                   nEvt,csthe12);
             printf("     tMin, t = %7.4f, %7.4f \n", tmin, t);
             continue;}
         thetP12CM = acos(csthe12);
@@ -439,12 +453,12 @@ int Deep_pipi(){
         
         if(k4PreRad.E()<0.0 || k4PostRad.E()<0.0){
             printf("Event %d, negative energy photon PreE, PostE = %7.4f, %7.4f \n",
-                   i, k4PreRad.E(),k4PostRad.E());
+                   nEvt, k4PreRad.E(),k4PostRad.E());
             continue;
         }
         
         nTrack = 0;
-        fprintf(outfile," %5d %5.1f %5.1f %5.1f %5.1f  %10.4f %10.4f %10.4f %10.4f %10.4f %10.4f \n", npartf,
+        fprintf(outfile," %5d %5.1f %5.1f %5.1f %5.1f  %10.4f %10.4f %10.4f %10.4f %10.4f %10.f\n", npartf,
                 ATarget, ZTarget, kPolar, TPolar, xBj, nu/kBeam, sqrt(W2), Q2, RF,psf);
         nTrack++;
         fprintf(outfile," %5d %5.1f %5d %5d %5d %5d %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f  %10.4f %10.4f \n",
